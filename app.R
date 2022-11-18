@@ -5,6 +5,7 @@ library(ComplexUpset)
 library(ggplot2)
 library(vroom)
 library(dplyr)
+library(DT)
 
 ## Load DATA
 load("data/matrix_and_sets.RData") ## All required list of genes and sets
