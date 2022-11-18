@@ -4,36 +4,41 @@ library(shiny)
 library(ComplexUpset)
 library(ggplot2)
 library(vroom)
+library(dplyr)
 
 ## Load DATA
-load("data/matrix_and_sets.RData")
-filter_list = read.csv("data/Filter_list.csv", header = TRUE)
-screening_list = read.csv("data/Screening_list.csv", header = TRUE)
-
-# Contains: mat_all, mat_all_filtered, mat_all_screening, mat_all_filtered_screening, 
-# all_together_set, all_together_filtered_set, all_together_screening_set, all_together_filtered_screening_set
+load("data/matrix_and_sets.RData") ## All required list of genes and sets
+load("data/inputTables.RData") ## All required tables
 
 all_matrix_set = list(mat_all, mat_all_filtered, mat_all_screening,
-                      mat_all_filtered_screening, filter_list, screening_list)
+                      mat_all_filtered_screening, filter_list, screening_list,
+                      mds_score, mat_dgea)
 
 options_mat = c("Complete", "Filtered", "Screening",
-                "Filetered_and_Screening", "Filter_list", "Screening_list")
+                "Filetered_and_Screening", "Filter_Lara_list", "Screening_list",
+                "MDS_score", "DEG_complete_table")
+
 options_only_mat = c("Complete", "Filtered", "Screening",
-                "Filetered_and_Screening")
+                "Filetered_and_Screening", "mds_score", "mat_dgea")
 
 names(all_matrix_set) = options_mat
 options = names(all_together_set)
 
+## Prepare matrix
+rownames(mds_score) = tolower(mds_score[,"Gene"])
+mds_score = subset(mds_score, select=c(HSC, CMP, MEP, GMP, AVERAGE))
+rownames(mat_dgea) = mat_dgea[,"Gene"]
+mat_dgea = mat_dgea %>% mutate_if(is.numeric, format, digits=3) ## Change digits number as desired output
+mds_score = mds_score %>% mutate_if(is.numeric, format, digits=3) 
+
+## START OF UI
 ui <- dashboardPage(
   dashboardHeader(title = "Demo CF screening"),
   
   ## Sidebar content
   dashboardSidebar(
     sidebarMenu(
-      menuItem("Intersection", tabName = "intersection", icon = icon("file-code-o")),
-
-      menuItem("Distinct", tabName = "distinct", icon = icon("file-code-o")),
-      
+      menuItem("Intersection", tabName = "intersection", icon = icon("list-alt")),
       menuItem("Download content", tabName = "download", icon = icon("table"))
     )
   ),
@@ -45,9 +50,11 @@ ui <- dashboardPage(
       ##First tab content##
       #####################
       tabItem(tabName = "intersection",
+              ## Intersection plot
               fluidRow(
                 box(plotOutput("result_plot", height = 500,),
-                    status = "primary"
+                    status = "primary",
+                    width = 7
                 ),
                 
                 column(width = 4,
@@ -67,7 +74,7 @@ ui <- dashboardPage(
                                        label = "Intersection plot options",
                                        # fill = TRUE,
                                        choices = options,
-                                       selected = options,
+                                       selected = options[-(length(options))], # Except last option
                                        inline = FALSE),
                     
                     actionButton("reset_button_plot_all", "Select all", class = "btn-lg btn-success"),
@@ -77,14 +84,15 @@ ui <- dashboardPage(
                 )
               ),
               
+              ## The list of genes
               fluidRow(
                 box(
                   title = "Gene names for intersection",
                   textOutput("result_text"),
-                  status = "warning"
+                  status = "warning",
+                  width = 7
                 ),
                 box(
-
                   checkboxGroupInput(inputId = "selection_text", 
                                      label = "Gene list.",
                                      # fill = TRUE,
@@ -93,23 +101,37 @@ ui <- dashboardPage(
                                      inline = FALSE),
                   
                   actionButton("reset_button_text", "Clear all", class = "btn-danger"),
-                  status = "warning"                  
+                  downloadButton("download_butt_geneList", "Download .tsv"),
+                  status = "warning",
+                  width = 4
+                )
+              ),
+              ## DGEA table
+              fluidRow(
+                box(
+                   tabsetPanel(
+                     id = "dgea_table_out",
+                     tabPanel("AML", dataTableOutput("dgea_table_outAML")),
+                     tabPanel("SCORE_MDS", dataTableOutput("dgea_table_outSCORE")),
+                     tabPanel("HSC_MDS", dataTableOutput("dgea_table_outHSC")),
+                     tabPanel("CMP_MDS", dataTableOutput("dgea_table_outCMP")),
+                     tabPanel("MEP_MDS", dataTableOutput("dgea_table_outMEP")),
+                     tabPanel("GMP_MDS", dataTableOutput("dgea_table_outGMP"))
+                   ),
+                   status  ="warning",
+                   width = 11
                 )
               )
       ),
       
       # Second tab content
-      tabItem(tabName = "distinct",
-              h2("NOT IMPLEMENTED YET")
-      ),
-      # Third tab content
       tabItem(tabName = "download",
               fluidRow(
                 box(
                   selectInput("download_mat", "Select a matrix", options_mat),
                   dataTableOutput("preview_mat"),
                   downloadButton("download_butt", "Download .tsv"),
-                  width = 6
+                  width = 11
                 )
               )
       )
@@ -118,6 +140,7 @@ ui <- dashboardPage(
 )
 ## END OF UI
 
+## START OF SERVER
 server <- function(input, output) {
 #-------------------------------------------------------------------------------
 # Tab intersection
@@ -162,7 +185,7 @@ server <- function(input, output) {
       if (length(selected_set()[input$selection_text][[1]]) == 0) {
         paste(input$selection_text, " do not have significant genes.")
       } else {
-        paste("The gene(s) of ", input$selection_text, " are: ", paste(selected_set()[input$selection_text][[1]], collapse=" ,"), ".")
+        paste("The gene(s) of ", input$selection_text, " are: ", paste(selected_set()[input$selection_text][[1]], collapse=", "), ".")
       }
       
     } else if (len_sel() == 2) {
@@ -170,7 +193,7 @@ server <- function(input, output) {
         paste(input$selection_text[1], " and ", input$selection_text[2]," do not share significant genes.")
         
       } else {
-        paste("The gene(s) are: ", paste(intersect(selected_set()[input$selection_text[1]][[1]], selected_set()[input$selection_text[2]][[1]]), collapse = " ,"), ".")
+        paste("The gene(s) are: ", paste(intersect(selected_set()[input$selection_text[1]][[1]], selected_set()[input$selection_text[2]][[1]]), collapse = ", "), ".")
       }
       
     } else {
@@ -184,12 +207,28 @@ server <- function(input, output) {
         paste(paste(input$selection_text[c(1:len_sel()-1)], collapse=", "), "and ", input$selection_text[len_sel()], " do not share significant genes.")
         
       } else {
-        paste("The gene(s) are:", paste(Reduce(intersect, custom_list), collapse = " ,"), collapse=" ,", ".")
+        paste("The gene(s) are:", paste(Reduce(intersect, custom_list), collapse = ", "), collapse=", ", ".")
         
       }
     }
   )  
 
+  
+  result_sel_gene = reactive(
+    if (len_sel() == 0) {
+      NULL
+    } else if (len_sel() == 1) {
+      selected_set()[input$selection_text][[1]]
+    } else {
+      custom_list_intersect = list()
+      for (i in c(1:len_sel())) { ## START for loop
+        custom_list_intersect = append(custom_list_intersect, list(selected_set()[input$selection_text[i]][[1]])) 
+      } ## END for loop
+      Reduce(intersect, custom_list_intersect)
+    }
+  )
+  
+  
   result_plot = reactive(
     tryCatch({
       ComplexUpset::upset(
@@ -226,6 +265,26 @@ server <- function(input, output) {
   observeEvent(
     input$reset_button_plot_null, {updateCheckboxGroupInput(getDefaultReactiveDomain(), "selection_plot", choices = options, selected = NULL)}
   )
+
+  ###########################
+  ##DOWNLOAD INTERSECT LIST##
+  ###########################
+  
+  download_geneList = reactive(
+    mat_dgea[result_sel_gene(),]
+      # data.frame(Gene_name=unlist(strsplit(result_sel(), ", ")))
+      
+    )
+  
+  output$download_butt_geneList = downloadHandler(
+    filename = function() {
+      name_list = paste(input$selection_text[c(1:len_sel())], collapse="__")
+      paste0(name_list, "_intersection_geneList.tsv")
+    },
+    content = function(file) {
+      vroom::vroom_write(download_geneList(), file)
+    }
+  )
   
   #################
   ##RENDER OUTPUT##
@@ -237,13 +296,79 @@ server <- function(input, output) {
   output$result_plot = renderPlot({
     result_plot()
   })
+  
+  output$dgea_table_outAML = DT::renderDataTable({
+    tryCatch({
+    DT::datatable(subset(mat_dgea[result_sel_gene(),], 
+                         select = c(CD34vsBlasto_AML_logFC, CD34vsBlasto_AML_padj,
+                                    LCSvsBLASTO_AML_logFC, LCSvsBLASTO_AML_padj)))
+    }, error=function(cond) { ## In case no subset is selected not display table
+     return(NULL) 
+    })
+  })
+  
+  output$dgea_table_outHSC = DT::renderDataTable({
+    tryCatch({
+      DT::datatable(subset(mat_dgea[result_sel_gene(),], 
+                           select = c(HSC_EB_MDS_logFC, HSC_EB_MDS_padj,
+                                      HSC_MLD_MDS_logFC, HSC_MLD_MDS_padj,
+                                      HSC_RS_MDS_logFC, HSC_RS_MDS_padj,
+                                      HSC_SLD_MDS_logFC, HSC_SLD_MDS_padj)))
+    }, error=function(cond) {
+      return(NULL) 
+    })
+  })
 
+  output$dgea_table_outCMP = DT::renderDataTable({
+    tryCatch({
+      DT::datatable(subset(mat_dgea[result_sel_gene(),], 
+                           select = c(CMP_EB_MDS_logFC, CMP_EB_MDS_padj,
+                                      CMP_MLD_MDS_logFC, CMP_MLD_MDS_padj,
+                                      CMP_RS_MDS_logFC, CMP_RS_MDS_padj,
+                                      CMP_SLD_MDS_logFC, CMP_SLD_MDS_padj)))
+    }, error=function(cond) { 
+      return(NULL) 
+    })
+  })
+  
+  output$dgea_table_outMEP = DT::renderDataTable({
+    tryCatch({
+      DT::datatable(subset(mat_dgea[result_sel_gene(),], 
+                           select = c(MEP_EB_MDS_logFC, MEP_EB_MDS_padj,
+                                      MEP_MLD_MDS_logFC, MEP_MLD_MDS_padj,
+                                      MEP_RS_MDS_logFC, MEP_RS_MDS_padj,
+                                      MEP_SLD_MDS_logFC, MEP_SLD_MDS_padj)))
+    }, error=function(cond) {
+      return(NULL) 
+    })
+  })
+  
+  output$dgea_table_outGMP = DT::renderDataTable({
+    tryCatch({
+      DT::datatable(subset(mat_dgea[result_sel_gene(),], 
+                           select = c(GMP_EB_MDS_logFC, GMP_EB_MDS_padj,
+                                      GMP_MLD_MDS_logFC, GMP_MLD_MDS_padj,
+                                      GMP_RS_MDS_logFC, GMP_RS_MDS_padj,
+                                      GMP_SLD_MDS_logFC, GMP_SLD_MDS_padj)))
+    }, error=function(cond) { 
+      return(NULL) 
+    })
+  })
+  
+  output$dgea_table_outSCORE = DT::renderDataTable({
+    tryCatch({
+      DT::datatable(mds_score[result_sel_gene(),])
+    }, error=function(cond) { 
+      return(NULL) 
+    })
+  })
+    
 #-------------------------------------------------------------------------------
 # Tab download
   
-  #############
-  ##DOWNLOAD###
-  #############
+  ######################
+  ##DOWNLOAD REFERENCE##
+  ######################
   
   download_mat_sel = reactive(input$download_mat)
   download_df = reactive(
@@ -267,7 +392,6 @@ server <- function(input, output) {
       vroom::vroom_write(download_df(), file)
     }
   )
-  
 }
 ## END OF SERVER
 
