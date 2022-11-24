@@ -12,7 +12,8 @@ library(shinyBS)
 ## Load DATA
 load("data/matrix_and_sets.RData") ## All required list of genes and sets
 load("data/inputTables.RData") ## All required tables
-load("data/customImages.RData") ## All images of CF
+load("data/customImagesPart1.RData") ## All images of CF
+load("data/customImagesPart2.RData") ## All images of CF
 load("data/customImagesComplex.RData") ## All images of complexes
 
 all_matrix_set = list(mat_all, mat_all_filtered, mat_all_screening,
@@ -39,7 +40,7 @@ mds_score = mds_score %>% mutate_if(is.numeric, format, digits=3)
 ## Declarate variables in order to create the customes images
 plot_contain_list = tolower(filter_list[1:122,1])
 rownames(cf_complex_df) = tolower(cf_complex_df$cf)
-
+list_png_files = c(list_png_files_part1, list_png_files_part2) ## combine two lists
 
 ## START OF UI
 ui <- dashboardPage(
