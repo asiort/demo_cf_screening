@@ -1,6 +1,6 @@
 # Demo_CF_screening
 
-### In order to run the app in you local R. 
+### In order to run the app in you local R (>=4.1). 
 
 ```
 ## Install required packages
