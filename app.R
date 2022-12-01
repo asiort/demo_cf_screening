@@ -8,6 +8,7 @@ library(dplyr)
 library(DT)
 library(patchwork)
 library(shinyBS)
+library(grDevices)
 
 ## Load DATA
 load("data/matrix_and_sets.RData") ## All required list of genes and sets
@@ -376,7 +377,15 @@ server <- function(input, output) {
     tryCatch({
     DT::datatable(subset(mat_dgea[result_sel_gene(),], 
                          select = c(CD34vsBlasto_AML_logFC, CD34vsBlasto_AML_padj,
-                                    LCSvsBLASTO_AML_logFC, LCSvsBLASTO_AML_padj)))
+                                    LCSvsBLASTO_AML_logFC, LCSvsBLASTO_AML_padj))) %>% formatStyle(
+        columns = c("CD34vsBlasto_AML_logFC", "LCSvsBLASTO_AML_logFC"), 
+        valueColumns = c("CD34vsBlasto_AML_logFC", "LCSvsBLASTO_AML_logFC"), 
+        backgroundColor = 
+          styleInterval(seq(-2, 2, by=0.25), 
+                        unique(c(colorRampPalette(c("#1164ff", "white"))(length(seq(-2, 0, by=0.25))),
+                                 colorRampPalette(c("white", "#f96244"))(length(seq(0, 2, by=0.25))+1))
+                        ))
+      )
     }, error=function(cond) { ## In case no subset is selected not display table
      return(NULL) 
     })
@@ -388,7 +397,17 @@ server <- function(input, output) {
                            select = c(HSC_EB_MDS_logFC, HSC_EB_MDS_padj,
                                       HSC_MLD_MDS_logFC, HSC_MLD_MDS_padj,
                                       HSC_RS_MDS_logFC, HSC_RS_MDS_padj,
-                                      HSC_SLD_MDS_logFC, HSC_SLD_MDS_padj)))
+                                      HSC_SLD_MDS_logFC, HSC_SLD_MDS_padj))) %>% formatStyle(
+        columns = c("HSC_EB_MDS_logFC", "HSC_MLD_MDS_logFC", 
+                    "HSC_RS_MDS_logFC", "HSC_SLD_MDS_logFC"), 
+        valueColumns = c("HSC_EB_MDS_logFC", "HSC_MLD_MDS_logFC", 
+                         "HSC_RS_MDS_logFC", "HSC_SLD_MDS_logFC"), 
+        backgroundColor = 
+          styleInterval(seq(-2, 2, by=0.25), 
+                        unique(c(colorRampPalette(c("#1164ff", "white"))(length(seq(-2, 0, by=0.25))),
+                                 colorRampPalette(c("white", "#f96244"))(length(seq(0, 2, by=0.25))+1))
+                        ))
+      )
     }, error=function(cond) {
       return(NULL) 
     })
@@ -400,7 +419,17 @@ server <- function(input, output) {
                            select = c(CMP_EB_MDS_logFC, CMP_EB_MDS_padj,
                                       CMP_MLD_MDS_logFC, CMP_MLD_MDS_padj,
                                       CMP_RS_MDS_logFC, CMP_RS_MDS_padj,
-                                      CMP_SLD_MDS_logFC, CMP_SLD_MDS_padj)))
+                                      CMP_SLD_MDS_logFC, CMP_SLD_MDS_padj))) %>% formatStyle(
+        columns = c("CMP_EB_MDS_logFC", "CMP_MLD_MDS_logFC", 
+                    "CMP_RS_MDS_logFC", "CMP_SLD_MDS_logFC"), 
+        valueColumns = c("CMP_EB_MDS_logFC", "CMP_MLD_MDS_logFC", 
+                         "CMP_RS_MDS_logFC", "CMP_SLD_MDS_logFC"), 
+        backgroundColor = 
+          styleInterval(seq(-2, 2, by=0.25), 
+                        unique(c(colorRampPalette(c("#1164ff", "white"))(length(seq(-2, 0, by=0.25))),
+                                 colorRampPalette(c("white", "#f96244"))(length(seq(0, 2, by=0.25))+1))
+                        ))
+      )
     }, error=function(cond) { 
       return(NULL) 
     })
@@ -412,7 +441,17 @@ server <- function(input, output) {
                            select = c(MEP_EB_MDS_logFC, MEP_EB_MDS_padj,
                                       MEP_MLD_MDS_logFC, MEP_MLD_MDS_padj,
                                       MEP_RS_MDS_logFC, MEP_RS_MDS_padj,
-                                      MEP_SLD_MDS_logFC, MEP_SLD_MDS_padj)))
+                                      MEP_SLD_MDS_logFC, MEP_SLD_MDS_padj))) %>% formatStyle(
+        columns = c("MEP_EB_MDS_logFC", "MEP_MLD_MDS_logFC", 
+                    "MEP_RS_MDS_logFC", "MEP_SLD_MDS_logFC"), 
+        valueColumns = c("MEP_EB_MDS_logFC", "MEP_MLD_MDS_logFC", 
+                         "MEP_RS_MDS_logFC", "MEP_SLD_MDS_logFC"), 
+        backgroundColor = 
+          styleInterval(seq(-2, 2, by=0.25), 
+                        unique(c(colorRampPalette(c("#1164ff", "white"))(length(seq(-2, 0, by=0.25))),
+                                 colorRampPalette(c("white", "#f96244"))(length(seq(0, 2, by=0.25))+1))
+                        ))
+      )
     }, error=function(cond) {
       return(NULL) 
     })
@@ -424,20 +463,35 @@ server <- function(input, output) {
                            select = c(GMP_EB_MDS_logFC, GMP_EB_MDS_padj,
                                       GMP_MLD_MDS_logFC, GMP_MLD_MDS_padj,
                                       GMP_RS_MDS_logFC, GMP_RS_MDS_padj,
-                                      GMP_SLD_MDS_logFC, GMP_SLD_MDS_padj)))
-    }, error=function(cond) { 
-      return(NULL) 
+                                      GMP_SLD_MDS_logFC, GMP_SLD_MDS_padj))) %>% formatStyle(
+        columns = c("GMP_EB_MDS_logFC", "GMP_MLD_MDS_logFC", 
+                    "GMP_RS_MDS_logFC", "GMP_SLD_MDS_logFC"), 
+        valueColumns = c("GMP_EB_MDS_logFC", "GMP_MLD_MDS_logFC", 
+                         "GMP_RS_MDS_logFC", "GMP_SLD_MDS_logFC"), 
+        backgroundColor = 
+          styleInterval(seq(-2, 2, by=0.25), 
+                        unique(c(colorRampPalette(c("#1164ff", "white"))(length(seq(-2, 0, by=0.25))),
+                          colorRampPalette(c("white", "#f96244"))(length(seq(0, 2, by=0.25))+1))
+                          ))
+      )
+    }, error=function(cond) {
+      return(NULL)
     })
   })
   
   output$dgea_table_outSCORE = DT::renderDataTable({
     tryCatch({
-      DT::datatable(mds_score[result_sel_gene(),])
-    }, error=function(cond) { 
-      return(NULL) 
+      DT::datatable(mds_score[result_sel_gene(),]) %>% formatStyle( 
+        columns = colnames(mds_score), 
+        valueColumns = colnames(mds_score), 
+        backgroundColor = 
+          styleInterval(seq(0, 1, by=0.1), 
+            colorRampPalette(c("white", "#f96244"))(length(seq(0, 1, by=0.1))+1)) 
+        )
+    }, error=function(cond) {
+      return(NULL)
     })
   })
-  
   
   output$image_genes = renderPlot({
     create_image(cf_paper_png())
