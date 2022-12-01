@@ -4,7 +4,7 @@
 
 ```
 ## Install required packages
-list.of.packages = c("shinydashboard", "shiny", "ComplexUpset", "ggplot2", "dplyr", "vroom", "DT", "patchwork", "shinyBS")
+list.of.packages = c("shinydashboard", "shiny", "ComplexUpset", "ggplot2", "dplyr", "vroom", "DT", "patchwork", "shinyBS", "grDevices")
 new.packages = list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
